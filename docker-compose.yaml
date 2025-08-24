@@ -1,0 +1,51 @@
+services:
+    micro_email:
+        build:
+            args:
+                user: icaro
+                uid: 1000
+            context: ./
+            dockerfile: ./Dockerfile
+        image: laravel-app
+        restart: unless-stopped
+        working_dir: /var/www/
+        volumes: 
+            - ./:/var/www
+        depends_on:
+            - micro_email_redis
+            - micro_email_queue
+        networks:
+            - microemail          
+    nginx:
+        image: nginx:alpine
+        restart: unless-stopped
+        ports:
+            - 8007:80
+        volumes:
+            - ./:/var/www
+            - ./docker/nginx/:/etc/nginx/conf.d/
+        networks:
+            - microemail
+
+    micro_email_queue:
+        build:
+            args:
+                user: icaro
+                uid: 1000
+            context: ./
+            dockerfile: Dockerfile 
+        command: "php artisan queue:work"
+        restart: unless-stopped
+        volumes:
+            - ./:/var/www
+        networks:
+            - microemail           
+    micro_email_redis:
+        image: redis:latest
+        ports:
+          - 6380:6379
+        networks:
+            - microemail                      
+networks:
+  microemail:
+      driver: bridge
