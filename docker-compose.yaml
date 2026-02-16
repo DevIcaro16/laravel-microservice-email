@@ -13,9 +13,8 @@ services:
             - ./:/var/www
         depends_on:
             - micro_email_redis
-            - micro_email_queue
         networks:
-            - microemail          
+            - microservices          
     nginx:
         image: nginx:alpine
         restart: unless-stopped
@@ -25,7 +24,7 @@ services:
             - ./:/var/www
             - ./docker/nginx/:/etc/nginx/conf.d/
         networks:
-            - microemail
+            - microservices
 
     micro_email_queue:
         build:
@@ -34,18 +33,20 @@ services:
                 uid: 1000
             context: ./
             dockerfile: Dockerfile 
-        command: "php artisan queue:work"
+        command: "php artisan queue:work --verbose --tries=3 --timeout=60"
         restart: unless-stopped
         volumes:
             - ./:/var/www
+        depends_on:
+            - micro_email_redis
         networks:
-            - microemail           
+            - microservices           
     micro_email_redis:
         image: redis:latest
         ports:
           - 6380:6379
         networks:
-            - microemail                      
+            - microservices                      
 networks:
-  microemail:
+  microservices:
       driver: bridge
